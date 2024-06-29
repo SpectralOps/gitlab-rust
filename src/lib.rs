@@ -33,6 +33,7 @@ pub use crate::auth::AuthError;
 #[cfg(feature = "client_api")]
 pub use crate::gitlab::{
     AsyncGitlab, Gitlab, GitlabBuilder, GitlabError, ImpersonationClient, RestError,
+    RootCertificate,
 };
 
 #[cfg(test)]

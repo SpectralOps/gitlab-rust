@@ -15,7 +15,7 @@ use http::{HeaderMap, Response as HttpResponse};
 use itertools::Itertools;
 use log::{debug, error, info};
 use reqwest::blocking::Client;
-use reqwest::Client as AsyncClient;
+use reqwest::{Certificate, Client as AsyncClient};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use thiserror::Error;
@@ -26,6 +26,13 @@ use reqwest::Identity as TlsIdentity;
 
 use crate::api;
 use crate::auth::{Auth, AuthError};
+
+#[derive(Debug, Clone)]
+pub enum RootCertificate {
+    Der(Vec<u8>),
+    Pem(Vec<u8>),
+    PemBundle(Vec<u8>),
+}
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -128,12 +135,16 @@ impl Debug for Gitlab {
     }
 }
 
-/// Should a certificate be validated in tls connections.
+/// Should a certificate be validated in TLS connections.
 /// The Insecure option is used for self-signed certificates.
 #[derive(Debug, Clone)]
 enum CertPolicy {
     Default,
+    /// Trust all certificates (including expired certificates). This introduces significant
+    /// vulnerabilities, and should only be used as a last resort.
     Insecure,
+    /// Trust certificates signed by the root certificate.
+    SelfSigned(RootCertificate),
 }
 
 impl Gitlab {
@@ -157,6 +168,7 @@ impl Gitlab {
 
     /// Create a new non-SSL Gitlab API representation.
     ///
+    /// The `token` should be a valid [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
     /// Errors out if `token` is invalid.
     pub fn new_insecure<H, T>(host: H, token: T) -> GitlabResult<Self>
     where
@@ -168,6 +180,28 @@ impl Gitlab {
             host.as_ref(),
             Auth::Token(token.into()),
             CertPolicy::Insecure,
+            ClientCert::None,
+        )
+    }
+
+    /// Create a new Gitlab API representation, with a custom root certificate.
+    ///
+    /// The `token` should be a valid [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
+    /// Errors out if `token` is invalid.
+    pub fn new_self_signed<H, T>(
+        host: H,
+        token: T,
+        root_certificate: RootCertificate,
+    ) -> GitlabResult<Self>
+    where
+        H: AsRef<str>,
+        T: Into<String>,
+    {
+        Self::new_impl(
+            "https",
+            host.as_ref(),
+            Auth::Token(token.into()),
+            CertPolicy::SelfSigned(root_certificate),
             ClientCert::None,
         )
     }
@@ -275,6 +309,24 @@ impl Gitlab {
                         Client::builder().identity(id).build()?
                     },
                 }
+            },
+            CertPolicy::SelfSigned(cert) => {
+                let mut builder = Client::builder();
+                match cert {
+                    RootCertificate::Der(der) => {
+                        builder = builder.add_root_certificate(Certificate::from_der(&der)?);
+                    },
+                    RootCertificate::Pem(pem) => {
+                        builder = builder.add_root_certificate(Certificate::from_pem(&pem)?);
+                    },
+                    RootCertificate::PemBundle(pem_bundle) => {
+                        for certificate in Certificate::from_pem_bundle(&pem_bundle)? {
+                            builder = builder.add_root_certificate(certificate);
+                        }
+                    },
+                };
+
+                builder.build()?
             },
         };
 
@@ -587,6 +639,24 @@ impl AsyncGitlab {
                         AsyncClient::builder().identity(id).build()?
                     },
                 }
+            },
+            CertPolicy::SelfSigned(cert) => {
+                let mut builder = AsyncClient::builder();
+                match cert {
+                    RootCertificate::Der(der) => {
+                        builder = builder.add_root_certificate(Certificate::from_der(&der)?);
+                    },
+                    RootCertificate::Pem(pem) => {
+                        builder = builder.add_root_certificate(Certificate::from_pem(&pem)?);
+                    },
+                    RootCertificate::PemBundle(pem_bundle) => {
+                        for certificate in Certificate::from_pem_bundle(&pem_bundle)? {
+                            builder = builder.add_root_certificate(certificate);
+                        }
+                    },
+                };
+
+                builder.build()?
             },
         };
 
