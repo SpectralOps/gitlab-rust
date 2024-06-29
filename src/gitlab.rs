@@ -15,7 +15,10 @@ use http::{HeaderMap, Response as HttpResponse};
 use itertools::Itertools;
 use log::{debug, error, info};
 use reqwest::blocking::Client;
-use reqwest::{Certificate, Client as AsyncClient};
+#[cfg(any(feature = "client_der", feature = "client_pem"))]
+use reqwest::Certificate;
+use reqwest::Client as AsyncClient;
+
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use thiserror::Error;
@@ -27,6 +30,7 @@ use reqwest::Identity as TlsIdentity;
 use crate::api;
 use crate::auth::{Auth, AuthError};
 
+#[cfg(any(feature = "client_der", feature = "client_pem"))]
 #[derive(Debug, Clone)]
 pub enum RootCertificate {
     Der(Vec<u8>),
@@ -143,6 +147,7 @@ enum CertPolicy {
     /// Trust all certificates (including expired certificates). This introduces significant
     /// vulnerabilities, and should only be used as a last resort.
     Insecure,
+    #[cfg(any(feature = "client_der", feature = "client_pem"))]
     /// Trust certificates signed by the root certificate.
     SelfSigned(RootCertificate),
 }
@@ -184,6 +189,7 @@ impl Gitlab {
         )
     }
 
+    #[cfg(any(feature = "client_der", feature = "client_pem"))]
     /// Create a new Gitlab API representation, with a custom root certificate.
     ///
     /// The `token` should be a valid [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
@@ -310,6 +316,7 @@ impl Gitlab {
                     },
                 }
             },
+            #[cfg(any(feature = "client_der", feature = "client_pem"))]
             CertPolicy::SelfSigned(cert) => {
                 let mut builder = Client::builder();
                 match cert {
@@ -640,6 +647,7 @@ impl AsyncGitlab {
                     },
                 }
             },
+            #[cfg(any(feature = "client_der", feature = "client_pem"))]
             CertPolicy::SelfSigned(cert) => {
                 let mut builder = AsyncClient::builder();
                 match cert {
