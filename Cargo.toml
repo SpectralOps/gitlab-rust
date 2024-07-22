@@ -61,7 +61,8 @@ url = "^2.1"
 void = { version = "^1.0.1", optional = true }
 # Required to avoid https://rustsec.org/advisories/RUSTSEC-2023-0044
 # Required to avoid https://rustsec.org/advisories/RUSTSEC-2023-0072
-openssl = { version = "~0.10.60", optional = true }
+# Required to avoid https://rustsec.org/advisories/RUSTSEC-2024-0357
+openssl = { version = "~0.10.66", optional = true }
 # Required to avoid `remove_dir_all` dependency.
 tempfile = { version = "^3.4.0", optional = true }
 # Required to avoid https://rustsec.org/advisories/RUSTSEC-2024-0019
