@@ -12,6 +12,7 @@ mod comment;
 mod comments;
 mod commit;
 mod commits;
+mod compare;
 mod create;
 mod create_status;
 mod merge_requests;
@@ -54,6 +55,10 @@ pub use self::refs::CommitReferences;
 pub use self::refs::CommitReferencesBuilder;
 pub use self::refs::CommitReferencesBuilderError;
 pub use self::refs::CommitRefsType;
+
+pub use self::compare::CompareCommits;
+pub use self::compare::CompareCommitsBuilder;
+pub use self::compare::CompareCommitsBuilderError;
 
 pub use self::statuses::CommitStatuses;
 pub use self::statuses::CommitStatusesBuilder;
