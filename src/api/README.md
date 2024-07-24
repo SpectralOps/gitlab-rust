@@ -218,6 +218,7 @@ These API endpoints have been implemented.
   * `GET    /projects/:project/repository/commits/:sha/merge_requests` `projects/repository/commits/merge_requests.rs`
   * `GET    /projects/:project/repository/commits/:sha/statuses` `projects/repository/commits/statuses.rs`
   * `GET    /projects/:project/repository/commits/:sha/signature` `projects/repository/commits/signature.rs`
+  * `GET    /projects/:project/repository/compare` `projects/repository/commits/compare.rs`
   * `GET    /projects/:project/repository/files/*file_path` `projects/repository/files/file.rs`
   * `POST   /projects/:project/repository/files/*file_path` `projects/repository/files/create.rs`
   * `PUT    /projects/:project/repository/files/*file_path` `projects/repository/files/update.rs`
@@ -472,7 +473,6 @@ instead of having to search the page for missing endpoints.
   * `GET    /projects/:project/repository/commits/:sha/diff` https://gitlab.kitware.com/help/api/commits.md#get-the-diff-of-a-commit
   * `GET    /projects/:project/repository/commits/:sha/discussions` https://gitlab.kitware.com/help/api/commits.md#get-the-discussions-of-a-commit
   * `POST   /projects/:project/repository/commits/:sha/revert` https://gitlab.kitware.com/help/api/commits.md#revert-a-commit
-  * `GET    /projects/:project/repository/compare` https://gitlab.kitware.com/help/api/repositories.md#compare-branches-tags-or-commits
   * `GET    /projects/:project/repository/contributors` https://gitlab.kitware.com/help/api/repositories.md#contributors
   * `HEAD   /projects/:project/repository/files/*file_path` https://gitlab.kitware.com/help/api/repository_files.md#get-file-from-repository
   * `GET    /projects/:project/repository/files/*file_path/blame` https://gitlab.kitware.com/help/api/repository_files.md#get-file-blame-from-repository

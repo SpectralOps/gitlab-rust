@@ -1,3 +1,9 @@
+# v0.1701.1 (unreleased)
+
+## Additions
+
+ * Add `api::projects:repository::commits::CompareCommits` endpoint
+
 # v0.1701.0
 
 ## Additions
