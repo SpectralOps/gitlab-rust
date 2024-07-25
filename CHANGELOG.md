@@ -2,6 +2,7 @@
 
 ## Additions
 
+  * Add `api::projects:repository::commits::CompareCommits` endpoint
   * Add `gitlab::Gitlab::new_self_signed` method
 
 # v0.1701.0
