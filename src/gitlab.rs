@@ -28,10 +28,10 @@ use crate::api;
 use crate::auth::{Auth, AuthError};
 
 #[derive(Debug, Clone)]
-pub enum RootCertificate {
-    Der(Vec<u8>),
-    Pem(Vec<u8>),
-    PemBundle(Vec<u8>),
+pub enum RootCertificate<'a> {
+    Der(&'a [u8]),
+    Pem(&'a [u8]),
+    PemBundle(&'a [u8]),
 }
 
 #[derive(Debug, Error)]
@@ -138,13 +138,13 @@ impl Debug for Gitlab {
 /// Should a certificate be validated in TLS connections.
 /// The Insecure option is used for self-signed certificates.
 #[derive(Debug, Clone)]
-enum CertPolicy {
+enum CertPolicy<'a> {
     Default,
     /// Trust all certificates (including expired certificates). This introduces significant
     /// vulnerabilities, and should only be used as a last resort.
     Insecure,
     /// Trust certificates signed by the root certificate.
-    SelfSigned(RootCertificate),
+    SelfSigned(RootCertificate<'a>),
 }
 
 impl Gitlab {
@@ -314,13 +314,13 @@ impl Gitlab {
                 let mut builder = Client::builder();
                 match cert {
                     RootCertificate::Der(der) => {
-                        builder = builder.add_root_certificate(Certificate::from_der(&der)?);
+                        builder = builder.add_root_certificate(Certificate::from_der(der)?);
                     },
                     RootCertificate::Pem(pem) => {
-                        builder = builder.add_root_certificate(Certificate::from_pem(&pem)?);
+                        builder = builder.add_root_certificate(Certificate::from_pem(pem)?);
                     },
                     RootCertificate::PemBundle(pem_bundle) => {
-                        for certificate in Certificate::from_pem_bundle(&pem_bundle)? {
+                        for certificate in Certificate::from_pem_bundle(pem_bundle)? {
                             builder = builder.add_root_certificate(certificate);
                         }
                     },
@@ -344,7 +344,7 @@ impl Gitlab {
     }
 
     /// Create a new Gitlab API client builder.
-    pub fn builder<H, T>(host: H, token: T) -> GitlabBuilder
+    pub fn builder<'a, H, T>(host: H, token: T) -> GitlabBuilder<'a>
     where
         H: Into<String>,
         T: Into<String>,
@@ -458,15 +458,15 @@ impl api::Client for Gitlab {
     }
 }
 
-pub struct GitlabBuilder {
+pub struct GitlabBuilder<'a> {
     protocol: &'static str,
     host: String,
     token: Auth,
-    cert_validation: CertPolicy,
+    cert_validation: CertPolicy<'a>,
     identity: ClientCert,
 }
 
-impl GitlabBuilder {
+impl<'a> GitlabBuilder<'a> {
     /// Create a new Gitlab API client builder.
     pub fn new<H, T>(host: H, token: T) -> Self
     where
@@ -608,11 +608,11 @@ impl api::AsyncClient for AsyncGitlab {
 
 impl AsyncGitlab {
     /// Internal method to create a new Gitlab client.
-    async fn new_impl(
+    async fn new_impl<'a>(
         protocol: &str,
         host: &str,
         auth: Auth,
-        cert_validation: CertPolicy,
+        cert_validation: CertPolicy<'a>,
         identity: ClientCert,
     ) -> GitlabResult<Self> {
         let instance_url = Url::parse(&format!("{}://{}/", protocol, host))?;
@@ -644,13 +644,13 @@ impl AsyncGitlab {
                 let mut builder = AsyncClient::builder();
                 match cert {
                     RootCertificate::Der(der) => {
-                        builder = builder.add_root_certificate(Certificate::from_der(&der)?);
+                        builder = builder.add_root_certificate(Certificate::from_der(der)?);
                     },
                     RootCertificate::Pem(pem) => {
-                        builder = builder.add_root_certificate(Certificate::from_pem(&pem)?);
+                        builder = builder.add_root_certificate(Certificate::from_pem(pem)?);
                     },
                     RootCertificate::PemBundle(pem_bundle) => {
-                        for certificate in Certificate::from_pem_bundle(&pem_bundle)? {
+                        for certificate in Certificate::from_pem_bundle(pem_bundle)? {
                             builder = builder.add_root_certificate(certificate);
                         }
                     },
