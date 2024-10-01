@@ -74,15 +74,11 @@ pub enum GitlabError {
 
 impl GitlabError {
     fn http(status: reqwest::StatusCode) -> Self {
-        GitlabError::Http {
-            status,
-        }
+        GitlabError::Http { status }
     }
 
     fn graphql(message: Vec<graphql_client::Error>) -> Self {
-        GitlabError::GraphQL {
-            message,
-        }
+        GitlabError::GraphQL { message }
     }
 
     fn no_response() -> Self {
@@ -290,25 +286,21 @@ impl Gitlab {
         let graphql_url = Url::parse(&format!("{}://{}/api/graphql", protocol, host))?;
 
         let client = match cert_validation {
-            CertPolicy::Insecure => {
-                Client::builder()
-                    .danger_accept_invalid_certs(true)
-                    .build()?
-            },
-            CertPolicy::Default => {
-                match identity {
-                    ClientCert::None => Client::new(),
-                    #[cfg(feature = "client_der")]
-                    ClientCert::Der(der, password) => {
-                        let id = TlsIdentity::from_pkcs12_der(&der, &password)?;
-                        Client::builder().identity(id).build()?
-                    },
-                    #[cfg(feature = "client_pem")]
-                    ClientCert::Pem(pem) => {
-                        let id = TlsIdentity::from_pem(&pem)?;
-                        Client::builder().identity(id).build()?
-                    },
-                }
+            CertPolicy::Insecure => Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()?,
+            CertPolicy::Default => match identity {
+                ClientCert::None => Client::new(),
+                #[cfg(feature = "client_der")]
+                ClientCert::Der(der, password) => {
+                    let id = TlsIdentity::from_pkcs12_der(&der, &password)?;
+                    Client::builder().identity(id).build()?
+                },
+                #[cfg(feature = "client_pem")]
+                ClientCert::Pem(pem) => {
+                    let id = TlsIdentity::from_pem(&pem)?;
+                    Client::builder().identity(id).build()?
+                },
             },
             CertPolicy::SelfSigned(cert) => {
                 let mut builder = Client::builder();
@@ -507,6 +499,11 @@ impl<'a> GitlabBuilder<'a> {
         self
     }
 
+    pub fn cert_self_singed_pem(&mut self, pem: &'a [u8]) -> &mut Self {
+        self.cert_validation = CertPolicy::SelfSigned(RootCertificate::Pem(pem));
+        self
+    }
+
     /// Switch to using an OAuth2 token instead of a personal access token
     pub fn oauth2_token(&mut self) -> &mut Self {
         if let Auth::Token(token) = self.token.clone() {
@@ -620,25 +617,21 @@ impl AsyncGitlab {
         let graphql_url = Url::parse(&format!("{}://{}/api/graphql", protocol, host))?;
 
         let client = match cert_validation {
-            CertPolicy::Insecure => {
-                AsyncClient::builder()
-                    .danger_accept_invalid_certs(true)
-                    .build()?
-            },
-            CertPolicy::Default => {
-                match identity {
-                    ClientCert::None => AsyncClient::new(),
-                    #[cfg(feature = "client_der")]
-                    ClientCert::Der(der, password) => {
-                        let id = TlsIdentity::from_pkcs12_der(&der, &password)?;
-                        AsyncClient::builder().identity(id).build()?
-                    },
-                    #[cfg(feature = "client_pem")]
-                    ClientCert::Pem(pem) => {
-                        let id = TlsIdentity::from_pem(&pem)?;
-                        AsyncClient::builder().identity(id).build()?
-                    },
-                }
+            CertPolicy::Insecure => AsyncClient::builder()
+                .danger_accept_invalid_certs(true)
+                .build()?,
+            CertPolicy::Default => match identity {
+                ClientCert::None => AsyncClient::new(),
+                #[cfg(feature = "client_der")]
+                ClientCert::Der(der, password) => {
+                    let id = TlsIdentity::from_pkcs12_der(&der, &password)?;
+                    AsyncClient::builder().identity(id).build()?
+                },
+                #[cfg(feature = "client_pem")]
+                ClientCert::Pem(pem) => {
+                    let id = TlsIdentity::from_pem(&pem)?;
+                    AsyncClient::builder().identity(id).build()?
+                },
             },
             CertPolicy::SelfSigned(cert) => {
                 let mut builder = AsyncClient::builder();
@@ -723,22 +716,20 @@ impl AsyncGitlab {
         auth: &Auth,
     ) -> Result<HttpResponse<Bytes>, api::ApiError<<Self as api::RestClient>::Error>> {
         use futures_util::TryFutureExt;
-        let call = || {
-            async {
-                auth.set_header(request.headers_mut().unwrap())?;
-                let http_request = request.body(body)?;
-                let request = http_request.try_into()?;
-                let rsp = self.client.execute(request).await?;
+        let call = || async {
+            auth.set_header(request.headers_mut().unwrap())?;
+            let http_request = request.body(body)?;
+            let request = http_request.try_into()?;
+            let rsp = self.client.execute(request).await?;
 
-                let mut http_rsp = HttpResponse::builder()
-                    .status(rsp.status())
-                    .version(rsp.version());
-                let headers = http_rsp.headers_mut().unwrap();
-                for (key, value) in rsp.headers() {
-                    headers.insert(key, value.clone());
-                }
-                Ok(http_rsp.body(rsp.bytes().await?)?)
+            let mut http_rsp = HttpResponse::builder()
+                .status(rsp.status())
+                .version(rsp.version());
+            let headers = http_rsp.headers_mut().unwrap();
+            for (key, value) in rsp.headers() {
+                headers.insert(key, value.clone());
             }
+            Ok(http_rsp.body(rsp.bytes().await?)?)
         };
         call().map_err(api::ApiError::client).await
     }
